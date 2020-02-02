@@ -48,6 +48,8 @@ typedef struct{
   int bs_vpno;				/* starting virtual page number */
   int bs_npages;			/* number of pages in the store */
   int bs_sem;				/* semaphore mechanism ?	*/
+  int bs_type;				/* BS_VHEAP or BS_PAGE_HOLDER or BS_MMAP	*/
+  int bs_refcnt;                        /* reference count              */
 } bs_map_t;
 
 typedef struct{
@@ -57,7 +59,25 @@ typedef struct{
   int fr_refcnt;			/* reference count		*/
   int fr_type;				/* FR_DIR, FR_TBL, FR_PAGE	*/
   int fr_dirty;
+  int bs_id; int bs_page;		/*Backing Store Page address, if any*/
+  int nextfrmidx; int prevfrmidx;	/*queue stuff*/
+  int pt_addr; int pt_idx;
+  int fr_age;
 }fr_map_t;
+
+//typedef struct{
+//  int vadr_status;                        /* MAPPED or UNMAPPED           */
+//  int vadr_pid;                           /* process id using this frame  */
+//  int vadr_vpno;                          /* corresponding virtual page no*/
+//  int vadr_refcnt;                        /* reference count              */
+//  int vadr_type;                          /* FR_DIR, FR_TBL, FR_PAGE      */
+//  int vadr_dirty;
+//  int bs_id; int bs_page;               /*Backing Store Page address, if any*/
+//}fr_map_t;
+
+
+#define NFRAMES         1024    /* number of frames             */
+#define NBS             8	// number of Backing Stores
 
 extern bs_map_t bsm_tab[];
 extern fr_map_t frm_tab[];
@@ -71,10 +91,10 @@ int get_bs(bsd_t, unsigned int);
 SYSCALL release_bs(bsd_t);
 SYSCALL read_bs(char *, bsd_t, int);
 SYSCALL write_bs(char *, bsd_t, int);
+int frmhead, frmtail;
 
 #define NBPG		4096	/* number of bytes per page	*/
 #define FRAME0		1024	/* zero-th frame		*/
-#define NFRAMES 	1024	/* number of frames		*/
 
 #define BSM_UNMAPPED	0
 #define BSM_MAPPED	1
@@ -91,3 +111,6 @@ SYSCALL write_bs(char *, bsd_t, int);
 
 #define BACKING_STORE_BASE	0x00800000
 #define BACKING_STORE_UNIT_SIZE 0x00100000
+
+#define BS_VHEAP 	1
+#define BS_MMAP		2

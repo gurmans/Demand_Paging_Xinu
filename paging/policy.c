@@ -13,8 +13,8 @@ extern int page_replace_policy;
 SYSCALL srpolicy(int policy)
 {
   /* sanity check ! */
-
-  kprintf("To be implemented!\n");
+	page_replace_policy = policy;
+  kprintf("Policy Changed!\n");
 
   return OK;
 }

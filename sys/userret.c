@@ -9,6 +9,7 @@
  */
 int userret()
 {
+        //kprintf("KILL INVOKEDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDD\n");
 	kill( getpid() );
         return(OK);
 }

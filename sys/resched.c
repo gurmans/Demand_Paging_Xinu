@@ -27,6 +27,7 @@ int	resched()
 
 	if ( ( (optr= &proctab[currpid])->pstate == PRCURR) &&
 	   (lastkey(rdytail)<optr->pprio)) {
+		write_cr3(optr->pdbr);
 		restore(PS);
 		return(OK);
 	}
@@ -82,7 +83,8 @@ int	resched()
 #ifdef	DEBUG
 	PrintSaved(nptr);
 #endif
-	
+        //kprintf("before process switched to: %s\n", nptr->pname);
+        //write_cr3(nptr->pdbr);
 	ctxsw(&optr->pesp, optr->pirmask, &nptr->pesp, nptr->pirmask);
 
 #ifdef	DEBUG
@@ -91,6 +93,7 @@ int	resched()
 	
 	/* The OLD process returns here when resumed. */
 	restore(PS);
+        //kprintf("process switched to: %s\n", nptr->pname);
 	return OK;
 }
 

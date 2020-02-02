@@ -8,6 +8,7 @@
 #include <io.h>
 #include <q.h>
 #include <stdio.h>
+#include <paging.h>
 
 /*------------------------------------------------------------------------
  * kill  --  kill a process and remove it from the system
@@ -20,10 +21,13 @@ SYSCALL kill(int pid)
 	int	dev;
 
 	disable(ps);
+        //kprintf("KILL INVOKEDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDD\n");
 	if (isbadpid(pid) || (pptr= &proctab[pid])->pstate==PRFREE) {
 		restore(ps);
 		return(SYSERR);
 	}
+        bsm_unmap(pid,-1,-1);
+        free_all_frames(pid);
 	if (--numproc == 0)
 		xdone();
 
@@ -56,6 +60,7 @@ SYSCALL kill(int pid)
 						/* fall through	*/
 	default:	pptr->pstate = PRFREE;
 	}
+
 	restore(ps);
 	return(OK);
 }

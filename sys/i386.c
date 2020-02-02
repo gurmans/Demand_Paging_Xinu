@@ -3,7 +3,7 @@
 #include <icu.h>
 #include <i386.h>
 #include <kernel.h>
-
+#include <paging.h>
 
 #define BOOTP_CODE
 #define	KCODE	1
@@ -134,10 +134,11 @@ setsegs()
 	unsigned int	np, npages, lostk, limit;
 
 	npages = sizmem();
-/*
-	maxaddr = (char *)(npages * NBPG - 1);
-*/
-	maxaddr = (char *)( 1536 * NBPG - 1); /* 10M size */
+
+//	maxaddr = (char *)(npages * NBPG - 1);
+
+
+	maxaddr = (char *)( 2048 * NBPG - 1); /* 08M size */
 				 	      /* the top 10M is used for backing store */
 
 	psd = &gdt_copy[1];	/* kernel code segment */

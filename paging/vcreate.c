@@ -28,9 +28,18 @@ SYSCALL vcreate(procaddr,ssize,hsize,priority,name,nargs,args)
 	long	args;			/* arguments (treated like an	*/
 					/* array in the code)		*/
 {
-	kprintf("To be implemented!\n");
-	return OK;
+	STATWORD ps;
+	disable(ps);
+	int pid, firstVirtualAddress = BACKING_STORE_BASE + (BACKING_STORE_UNIT_SIZE * NBS);
+	if((pid = create(procaddr,ssize,priority,name,nargs,args))==SYSERR)
+		return SYSERR;
+	if(hsize>0 && hsize<= BACKING_STORE_UNIT_SIZE)
+		bsm_map(pid, firstVirtualAddress, -1, hsize,BS_VHEAP);
+	restore(ps);
+	return pid;//page_directory_entry_new;
+	
 }
+	
 
 /*------------------------------------------------------------------------
  * newpid  --  obtain a new (free) process id

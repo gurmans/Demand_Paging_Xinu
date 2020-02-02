@@ -96,8 +96,11 @@ SYSCALL create(procaddr,ssize,priority,name,nargs,args)
 	*--saddr = 0;		/* %edi */
 	*pushsp = pptr->pesp = (unsigned long)saddr;
 
-	restore(ps);
 
+	if((pptr->pdbr = initializePageDirectory(pid))==SYSERR)
+		return SYSERR;
+//	kprntf("");
+        restore(ps);
 	return(pid);
 }
 
@@ -105,6 +108,34 @@ SYSCALL create(procaddr,ssize,priority,name,nargs,args)
  * newpid  --  obtain a new (free) process id
  *------------------------------------------------------------------------
  */
+initializePageDirectory(int pid)
+{
+        int frame_number;
+        if(get_frm(&frame_number)==SYSERR)
+        {
+                kprintf("Page Initialization for create() failed.\n");
+                return SYSERR;
+        }
+//	kprintf("getfrm for create returned : %d\n", frame_number);
+//	memcpy((FRAME0+frame_number)*NBPG,FRAME0*NBPG,NBPG);
+	pd_t *page_directory_entry_new =((FRAME0 + frame_number) * NBPG);
+        pd_t *page_directory_entry_base = (FRAME0) * NBPG;
+       // kprintf("PD Address : %d\n Calculated Address of create PD: %d\n", page_directory_entry_new, (FRAME0 + frame_number) * NBPG);
+        int i=0;
+	for(;i<4;i++)
+        {
+                page_directory_entry_new[i].pd_write = page_directory_entry_base[i].pd_write;
+                page_directory_entry_new[i].pd_pres = page_directory_entry_base[i].pd_pres;
+                page_directory_entry_new[i].pd_base = page_directory_entry_base[i].pd_base;
+	}	
+//      kprintf("2getfrm for create returned : %d\n", frame_number);
+	frame_map(pid, frame_number, FRAME0 + frame_number, FR_DIR, -1, -1, -1, -1);
+//        kprintf("3getfrm for create returned : %d\n", frame_number);
+
+	return page_directory_entry_new;
+	
+}
+
 LOCAL int newpid()
 {
 	int	pid;			/* process id to return		*/

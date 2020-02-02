@@ -12,7 +12,7 @@
 #include <io.h>
 #include <paging.h>
 
-/*#define DETAIL */
+#define DETAIL
 #define HOLESIZE	(600)	
 #define	HOLESTART	(640 * 1024)
 #define	HOLEEND		((1024 + HOLESIZE) * 1024)  
@@ -36,6 +36,9 @@ struct	mblock	memlist;	/* list of free memory blocks		*/
 #ifdef	Ntty
 struct  tty     tty[Ntty];	/* SLU buffers and mode control		*/
 #endif
+
+bs_map_t bsm_tab[NBS];
+fr_map_t frm_tab[NFRAMES];
 
 /* active system status */
 int	numproc;		/* number of live user processes	*/
@@ -79,7 +82,10 @@ nulluser()				/* babysit CPU when no one is home */
 	sysinit();
 
 	enable();		/* enable interrupts */
-
+	//initializePagingStructures();
+	//write_cr3(4194304);
+	//kprintf("PC Xinu %s", VERSION);
+	//enable_paging();
 	sprintf(vers, "PC Xinu %s", VERSION);
 	kprintf("\n\n%s\n", vers);
 	if (reboot++ < 1)
@@ -116,8 +122,10 @@ nulluser()				/* babysit CPU when no one is home */
 	userpid = create(main,INITSTK,INITPRIO,INITNAME,INITARGS);
 	resume(userpid);
 
+	
 	while (TRUE)
-		/* empty */;
+	//	kprintf("nullproc ")	/* empty */
+		;
 }
 
 /*------------------------------------------------------------------------
@@ -133,6 +141,8 @@ sysinit()
 	struct	sentry	*sptr;
 	struct	mblock	*mptr;
 	SYSCALL pfintr();
+        SYSCALL pfint();
+
 
 	
 
@@ -202,16 +212,57 @@ sysinit()
 	pptr->pargs = 0;
 	pptr->pprio = 0;
 	currpid = NULLPROC;
-
 	for (i=0 ; i<NSEM ; i++) {	/* initialize semaphores */
 		(sptr = &semaph[i])->sstate = SFREE;
 		sptr->sqtail = 1 + (sptr->sqhead = newqueue());
 	}
 
 	rdytail = 1 + (rdyhead=newqueue());/* initialize ready list */
-
-
+	
+	//setup PD & PT
+	int pdAddress;
+	if((pdAddress = initializePagingStructures())==SYSERR)
+		return SYSERR;
+	write_cr3(pdAddress);
+	proctab[currpid].pdbr = pdAddress;
+	enable_paging();
+	set_evec(14,pfintr);
 	return(OK);
+}
+
+int initializePagingStructures()
+{
+	init_frm();
+	init_bsm();	
+	int frame_number;
+	if(get_frm(&frame_number)==SYSERR)
+	{
+		kprintf("Page Initialization failed.\n");
+		return SYSERR;
+	}
+
+	pd_t *page_directory_entries = (FRAME0 + frame_number) * NBPG;//4096
+	pt_t *page_table_entries = (FRAME0 + frame_number +1) * NBPG;
+	frame_map(NULLPROC, frame_number, FRAME0 + frame_number, FR_DIR, -1, -1, -1,-1);
+	int i = 0;
+	for(;i<4;i++)
+	{
+		page_directory_entries[i].pd_write = 1;
+		page_directory_entries[i].pd_pres = 1;
+		page_directory_entries[i].pd_base = ((FRAME0 + frame_number + 1) +i);
+		int p = 0;
+		for(;p< 1024 ;p++)
+		{
+			page_table_entries[(i * 1024)+p].pt_pres = 1;
+			page_table_entries[(i * 1024)+p].pt_write = 1;
+			page_table_entries[(i * 1024)+p].pt_base = (i * 1024)+p;
+			page_table_entries[(i * 1024)+p].pt_global = 1;
+		}
+		frame_map(-1, frame_number + 1 +i, FRAME0 + frame_number +1 +i, FR_TBL, -1, -1,-1,-1);
+
+	}
+
+	return page_directory_entries;	
 }
 
 stop(s)

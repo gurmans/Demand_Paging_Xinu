@@ -11,8 +11,8 @@
 #include <io.h>
 #include <stdio.h>
 
-/*#define STKTRACE*/
-/*#define REGDUMP*/
+#define STKTRACE
+#define REGDUMP
 
 /*
  * The girmask is used as a mask for interrupts that don't have a
@@ -141,6 +141,7 @@ void trap(int inum)
 	sp--;
 	kprintf("edi %08X (%u)\n", *sp, *sp);
 	sp--;
+	kprintf("cr2 %08X (%u)\n", read_cr2(), read_cr2());
 #endif // REGDUMP
 #ifdef STKTRACE
 	stacktrace(currpid);
